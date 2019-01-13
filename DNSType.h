@@ -10,33 +10,33 @@
 //字长为4 不然GG
 struct DNSHeader{
 #ifdef __LITTLE_ENDIAN
-	uint16_t transID;
+	uint16_t ID;
 	uint8_t RD : 1;
 	uint8_t TC : 1;
 	uint8_t AA : 1;
-	uint8_t opcode : 4;
+	uint8_t OPCODE : 4;
 	uint8_t QR : 1;
-	uint8_t rcode : 4;
-	uint8_t zero : 3;
+	uint8_t RCODE : 4;
+	uint8_t Z : 3;
 	uint8_t RA : 1;
-	uint16_t Questions;
-	uint16_t AnswerRRs;
-	uint16_t AuthorityRRs;
-	uint16_t AdditionalRRs;
+	uint16_t QDCOUNT;
+	uint16_t ANCOUNT;
+	uint16_t NSCOUNT;
+	uint16_t ARCOUNT;
 #else
-	uint16_t transID;
+	uint16_t ID;
 	uint8_t QR : 1;
-	uint8_t opcode : 4;
+	uint8_t OPCODE : 4;
 	uint8_t AA : 1;
 	uint8_t TC : 1;
 	uint8_t RD : 1;
 	uint8_t RA : 1;
-	uint8_t zero : 3;
-	uint8_t rcode : 4;
-	uint16_t Questions;
-	uint16_t AnswerRRs;
-	uint16_t AuthorityRRs;
-	uint16_t AdditionalRRs;
+	uint8_t Z : 3;
+	uint8_t RCODE : 4;
+	uint16_t QDCOUNT;
+	uint16_t ANCOUNT;
+	uint16_t NSCOUNT;
+	uint16_t ARCOUNT;
 #endif 
 	size_t len(){
 		return 12;
@@ -51,22 +51,22 @@ struct DNSHeader{
 	}
 private:
 	void n2h(){
-		transID = ntohs(transID);
-		Questions = ntohs(Questions);
-		AnswerRRs = ntohs(AnswerRRs);
-		AuthorityRRs = ntohs(AuthorityRRs);
-		AdditionalRRs = ntohs(AdditionalRRs);
+		ID = ntohs(ID);
+		QDCOUNT = ntohs(QDCOUNT);
+		ANCOUNT = ntohs(ANCOUNT);
+		NSCOUNT = ntohs(NSCOUNT);
+		ARCOUNT = ntohs(ARCOUNT);
 	}
 	void h2n(){
-		transID = htons(transID);
-		Questions = htons(Questions);
-		AnswerRRs = htons(AnswerRRs);
-		AuthorityRRs = htons(AuthorityRRs);
-		AdditionalRRs = htons(AdditionalRRs);
+		ID = htons(ID);
+		QDCOUNT = htons(QDCOUNT);
+		ANCOUNT = htons(ANCOUNT);
+		NSCOUNT = htons(NSCOUNT);
+		ARCOUNT = htons(ARCOUNT);
 	}
 };
 #pragma pack(pop)
-struct DNSQuery{
+struct DNSQuestion{
 	char *Name;
 	uint8_t Type;
 	uint8_t Class;
@@ -76,10 +76,10 @@ struct DNSQuery{
 	size_t len(){
 		return nameLen + 2;
 	}
-	~DNSQuery(){
+	~DNSQuestion(){
 		free(Name);
 	}
-	DNSQuery(const char *s){
+	DNSQuestion(const char *s){
 		nameLen = strlen(s) + 1;
 		Name = (char*)malloc(nameLen);
 		strncpy(Name, s, nameLen);
@@ -144,5 +144,6 @@ struct DNSRR{
 		strncpy(p, Data, DataLen);
 	}
 };
+
 
 #endif 
