@@ -41,6 +41,9 @@ struct DNSHeader{
 	size_t len(){
 		return 12;
 	}
+	DNSHeader(){
+		memset((char*)this, 0, 12);
+	}
 	DNSHeader(const char *s){
 		strncpy((char*)this, s, 12);
 		n2h();
@@ -144,6 +147,92 @@ struct DNSRR{
 		strncpy(p, Data, DataLen);
 	}
 };
+//TODO:refactor with new & delete
+struct DNSPackage{
+	DNSHeader header;
+	DNSQuestion *questions;
+	DNSRR *answers;
+	DNSRR *authoritys;
+	DNSRR *additionals;
 
+	uint16_t _len;
+	uint16_t len(){
+		return _len;
+	}
+	~DNSPackage(){
+		for(int i=0;i<header.QDCOUNT;i++) questions[i].~DNSQuestion();
+		for(int i=0;i<header.ANCOUNT;i++) answers[i].~DNSRR();
+		for(int i=0;i<header.NSCOUNT;i++) authoritys[i].~DNSRR();
+		for(int i=0;i<header.ARCOUNT;i++) additionals[i].~DNSRR();
+		free(questions);
+		free(answers);
+		free(authoritys);
+		free(additionals);
+	}
+	DNSPackage(){
+		_len = 0;
+		memset((char*)this, 0, sizeof(DNSPackage));
+	}
+	DNSPackage(const char *msg){
+		const char *p = msg;
+		header = DNSHeader(p);
+		p += header.len();
+		_len += header.len();
 
+		questions = (DNSQuestion *)malloc(sizeof(DNSQuestion)*header.QDCOUNT);
+		for(int i=0;i<header.QDCOUNT;i++) {
+			questions[i] = DNSQuestion(p);
+			p += questions[i].len();
+			_len += questions[i].len();
+		}
+
+		answers = (DNSRR *)malloc(sizeof(DNSRR)*header.ANCOUNT);
+		for(int i=0;i<header.ANCOUNT;i++) {
+			answers[i] = DNSRR(p, msg);
+			p += answers[i].len();
+			_len += answers[i].len();
+		}
+
+		authoritys = (DNSRR *)malloc(sizeof(DNSRR)*header.NSCOUNT);
+		for(int i=0;i<header.NSCOUNT;i++) {
+			authoritys[i] = DNSRR(p, msg);
+			p += authoritys[i].len();
+			_len += authoritys[i].len();
+		}
+
+		additionals = (DNSRR *)malloc(sizeof(DNSRR)*header.ARCOUNT);
+		for(int i=0;i<header.ARCOUNT;i++) {
+			additionals[i] = DNSRR(p, msg);
+			p += additionals[i].len();
+			_len += additionals[i].len();
+		}
+	}
+	void toString(char *s){
+		compress();
+		char *p = s;
+		for(int i=0;i<header.QDCOUNT;i++) {
+			questions[i].toString(p);
+			p += questions[i].len();	
+		}		
+		for(int i=0;i<header.ANCOUNT;i++) {
+			answers[i].toString(p);
+			p += answers[i].len();	
+		}
+		for(int i=0;i<header.NSCOUNT;i++) {
+			authoritys[i].toString(p);
+			p += authoritys[i].len();
+			
+		}
+		for(int i=0;i<header.ARCOUNT;i++) {
+			additionals[i].toString(p);
+			p += additionals[i].len();
+		}
+	}
+
+private:
+	//TODO
+	void compress(){
+
+	}
+};
 #endif 
