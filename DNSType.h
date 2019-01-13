@@ -43,9 +43,26 @@ struct DNSHeader{
 	}
 	DNSHeader(const char *s){
 		strncpy((char*)this, s, 12);
+		n2h();
 	}
 	void toString(char *s){
 		strncpy(s, (char*)this, 12);
+		h2n();
+	}
+private:
+	void n2h(){
+		transID = ntohs(transID);
+		Questions = ntohs(Questions);
+		AnswerRRs = ntohs(AnswerRRs);
+		AuthorityRRs = ntohs(AuthorityRRs);
+		AdditionalRRs = ntohs(AdditionalRRs);
+	}
+	void h2n(){
+		transID = htons(transID);
+		Questions = htons(Questions);
+		AnswerRRs = htons(AnswerRRs);
+		AuthorityRRs = htons(AuthorityRRs);
+		AdditionalRRs = htons(AdditionalRRs);
 	}
 };
 #pragma pack(pop)
