@@ -49,7 +49,7 @@ struct DNSHeader{
 	}
 };
 #pragma pack(pop)
-struct Query{
+struct DNSQuery{
 	char *Name;
 	uint8_t Type;
 	uint8_t Class;
@@ -59,7 +59,10 @@ struct Query{
 	size_t len(){
 		return nameLen + 2;
 	}
-	Query(const char *s){
+	~DNSQuery(){
+		free(Name);
+	}
+	DNSQuery(const char *s){
 		nameLen = strlen(s) + 1;
 		Name = (char*)malloc(nameLen);
 		strncpy(Name, s, nameLen);
@@ -72,7 +75,7 @@ struct Query{
 		s[nameLen+1] = Class;
 	}
 };
-struct RR{
+struct DNSRR{
 	char *Name;
 	uint8_t Type;
 	uint8_t Class;
@@ -86,7 +89,11 @@ struct RR{
 	size_t len(){
 		return nameLen + DataLen + 5;
 	}
-	RR(const char *s,const char *frS){
+	~DNSRR(){
+		free(Name);
+		free(Data);
+	}
+	DNSRR(const char *s,const char *frS){
 		uint8_t flag = s[0];
 		const char *p;
 		if(flag>>2==0xC){
