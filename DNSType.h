@@ -82,6 +82,13 @@ struct DNSQuestion{
 	~DNSQuestion(){
 		free(Name);
 	}
+	DNSQuestion(const uint8_t type, const uint8_t _class, const char *name){
+		Type = type;
+		Class = _class;
+		nameLen = strlen(name) + 1;
+		Name = (char*)malloc(nameLen);
+		strncpy(Name, name, nameLen);
+	}
 	DNSQuestion(const char *s){
 		nameLen = strlen(s) + 1;
 		Name = (char*)malloc(nameLen);
@@ -169,9 +176,13 @@ struct DNSPackage{
 		free(authoritys);
 		free(additionals);
 	}
-	DNSPackage(){
-		_len = 0;
+	DNSPackage(int id, const char *qdom){
 		memset((char*)this, 0, sizeof(DNSPackage));
+		header.ID = htons(0x1);
+		header.RD = 0x1;
+		header.QDCOUNT = htons(0x1);
+		questions = (DNSQuestion *)malloc(sizeof(DNSQuestion));
+		questions[0] = DNSQuestion(0x1, 0x1, qdom);
 	}
 	DNSPackage(const char *msg){
 		const char *p = msg;
