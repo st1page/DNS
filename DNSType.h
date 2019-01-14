@@ -184,13 +184,14 @@ struct DNSPackage{
 		free(authoritys);
 		free(additionals);
 	}
-	DNSPackage(int id, const char *qdom){
+	DNSPackage(uint16_t id, const char *qdom){
 		memset((char*)this, 0, sizeof(DNSPackage));
-		header.ID = htons(0x1);
+		header.ID = 0x1;
 		header.RD = 0x1;
-		header.QDCOUNT = htons(0x1);
+		header.QDCOUNT = 0x1;
 		questions = (DNSQuestion *)malloc(sizeof(DNSQuestion));
 		questions[0] = DNSQuestion(0x1, 0x1, qdom);
+		_len = header.len() + questions[0].len();
 	}
 	DNSPackage(const char *msg){
 		const char *p = msg;
