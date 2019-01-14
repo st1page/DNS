@@ -71,18 +71,18 @@ private:
 #pragma pack(pop)
 struct DNSQuestion{
 	char *Name;
-	uint8_t Type;
-	uint8_t Class;
+	uint16_t Type;
+	uint16_t Class;
 
 	uint8_t nameLen;
 
 	size_t len(){
-		return nameLen + 2;
+		return nameLen + 4;
 	}
 	~DNSQuestion(){
 		free(Name);
 	}
-	DNSQuestion(const uint8_t type, const uint8_t _class, const char *name){
+	DNSQuestion(const uint16_t type, const uint16_t _class, const char *name){
 		Type = type;
 		Class = _class;
 		nameLen = strlen(name) + 1;
@@ -93,28 +93,32 @@ struct DNSQuestion{
 		nameLen = strlen(s) + 1;
 		Name = (char*)malloc(nameLen);
 		strncpy(Name, s, nameLen);
-		Type = s[nameLen];
-		Class = s[nameLen+1];
+		uint16_t *p = (uint16_t*)(s+nameLen);
+		Type = ntohs(*p++);
+		Class = ntohs(*p);
 	}
 	void toString(char *s){
 		strncpy(s, Name, nameLen);
 		s[nameLen] = Type;
 		s[nameLen+1] = Class;
+		uint16_t *p = (uint16_t*)(s+nameLen);
+		*p = htons(Type); p++;
+		*p = htons(Class);
 	}
 };
 struct DNSRR{
 	char *Name;
-	uint8_t Type;
-	uint8_t Class;
-	uint16_t TTL;
-	uint8_t DataLen;
+	uint16_t Type;
+	uint16_t Class;
+	uint32_t TTL;
+	uint16_t DataLen;
 	char *Data;
 
 	uint8_t nameLen;
 	
 
 	size_t len(){
-		return nameLen + DataLen + 5;
+		return nameLen + DataLen + 10;
 	}
 	~DNSRR(){
 		free(Name);
@@ -135,10 +139,12 @@ struct DNSRR{
 			strncpy(Name, s, nameLen);
 			p = s + nameLen;
 		}
-		Type = *p++;
-		Class = *p++;
-		TTL = ntohs(*(uint16_t*)p);
-		p+=2;
+		const uint16_t *p16 = (const uint16_t *) p;
+		Type = ntohs(*p16++);
+		Class = htons(*p16++);
+		const uint32_t *p32 = (const uint32_t *) p16;
+		TTL = ntohl(*p32++);
+		p = (char*)p32;
 		DataLen = *p++;
 		Data = (char*)malloc(DataLen);
 		strncpy(Data, p, DataLen);
@@ -146,10 +152,12 @@ struct DNSRR{
 	void toString(char *s){
 		strncpy(s, Name, nameLen);
 		char *p = s + nameLen;
-		*p++ = Type;
-		*p++ = Class;
-		*(uint16_t*)p = htons(TTL);
-		p+=2;
+		uint16_t *p16 = (uint16_t *)(s+nameLen);
+		*p16++ = htons(Type);
+		*p16++ = htons(Class);
+		uint32_t *p32 = (uint32_t *)p16;
+		*p32++ = htonl(TTL);
+		p = (char*)p32;
 		*p++ = DataLen;
 		strncpy(p, Data, DataLen);
 	}
