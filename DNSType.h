@@ -7,6 +7,8 @@
 #include <arpa/inet.h>
 #include<stdio.h>
 #include <new>
+
+#include "utils.hpp"
 #pragma pack(push)
 #pragma pack(1)
 //字长为4 不然GG
@@ -122,7 +124,17 @@ struct DNSRR{
 
 	uint8_t nameLen;
 	
-
+	void print(){
+		printf("Name: %s\n",Name);
+		switch(Type){
+			case(1):
+				printf("CNAME: %s\n",Data);
+				break;
+			case(5):
+				printf("Address: %u,%u,%u,%u\n",Data[0],Data[1],Data[2],Data[3]);
+				break;
+		}
+	}
 	size_t len(){
 		return nameLen + DataLen + 10;
 	}
@@ -152,8 +164,9 @@ struct DNSRR{
 		TTL = ntohl(*p32++);
 		p = (char*)p32;
 		DataLen = *p++;
-		Data = (char*)malloc(DataLen);
+		Data = (char*)malloc(DataLen+1); 
 		memcpy(Data, p, DataLen);
+		Data[DataLen] = 0;
 	}
 	void toString(char *s){
 
@@ -240,9 +253,9 @@ struct DNSPackage{
 		char *p = s;
 		header.toString(p);
 		p+=header.len();
-		for(int i=0;i<header.QDCOUNT;i++) {printf("%d - %d\n",i,p-s);
+		for(int i=0;i<header.QDCOUNT;i++) {
 			questions[i].toString(p);
-			p += questions[i].len();	printf("%d - %d\n",i,p-s);
+			p += questions[i].len();	
 		}		
 		for(int i=0;i<header.ANCOUNT;i++) {
 			answers[i].toString(p);
