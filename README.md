@@ -1,2 +1,2 @@
 # DNS
-git test
+g++ DNSQ.cpp
