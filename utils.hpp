@@ -45,7 +45,19 @@ char* dn2msg(char *dn){
 	}
 	return msg;
 }
-
+char* msg2dn(const char *msg){
+	char *dn;
+	size_t len = strlen(msg);
+	dn = (char*)malloc(len);
+	size_t l,r;
+	for(size_t i=0;i<len;i=r+1){
+		l = i; r = i+msg[i];
+		for(size_t j=l;j<r;j++) dn[j] = msg[j+1];
+		dn[r] = '.';
+	}
+	dn[len-1] = 0;
+	return dn;
+}
 int udp_init(const char *ip,
 			 const unsigned short port,
 			 struct sockaddr_in *addr_p){
@@ -58,5 +70,48 @@ int udp_init(const char *ip,
 	addr_p->sin_addr.s_addr = inet_addr(ip);
 	addr_p->sin_port = htons(port);
 	return client_fd;
+}
+
+namespace dns{
+	inline bool is_ptr(const unsigned char &c){
+		return (c>>6)==0x3;
+	}
+	inline size_t ptr_offset(const char *c){
+		return ((size_t)(*c&0xf)<<8) + (size_t)(*(c+1))&0xff;
+	}
+	size_t dn_filed_len(const char *cur){
+		size_t len =0;
+		while(*cur){
+			if(is_ptr(*cur)) {
+				len += 2;
+				break;
+			}
+			len += *cur + 1;
+			cur += *cur + 1;
+		}
+		return len;
+	}
+	size_t dn_len(const char *cur, const char *begin){
+		size_t len =0;
+		while(*cur){
+			while(is_ptr(*cur)) cur = begin + ptr_offset(cur);
+			len += *cur + 1;
+			cur += *cur + 1;
+		}
+		return len;
+	}
+	char *full_dn(const char *cur, const char *begin){
+		size_t len = dn_len(cur, begin);
+		char *res = (char*)malloc(len+1);
+		char *dst = res;
+		while(*cur){
+			while(is_ptr(*cur)) cur = begin + ptr_offset(cur);
+			memcpy(dst,cur,*cur+1);
+			dst += *cur + 1;
+			cur += *cur + 1;
+		}
+		*dst = 0;
+		return res;
+	}
 }
 #endif

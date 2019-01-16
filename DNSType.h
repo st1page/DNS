@@ -92,9 +92,7 @@ struct DNSQuestion{
 		Class = _class;
 		nameLen = strlen(name) + 1;
 		Name = (char*)malloc(nameLen);
-		printf("%s\n",name);	
 		memcpy(Name, name, nameLen);
-		printf("%s\n",Name);
 	}
 	DNSQuestion(const char *s){
 		nameLen = strlen(s) + 1;
@@ -104,8 +102,7 @@ struct DNSQuestion{
 		Type = ntohs(*p++);
 		Class = ntohs(*p);
 	}
-	void toString(char *s){
-		printf("%s\n",Name);	
+	void toString(char *s){	
 		memcpy(s, Name, nameLen);
 		s[nameLen] = Type;
 		s[nameLen+1] = Class;
@@ -123,50 +120,60 @@ struct DNSRR{
 	char *Data;
 
 	uint8_t nameLen;
-	
+	uint8_t fnameLen;
+	uint8_t fdataLen;
+
 	void print(){
-		printf("Name: %s\n",Name);
+		char *t = msg2dn(Name);
+		printf("Name: %s\n",t);
+		free(t);
 		switch(Type){
 			case(1):
-				printf("CNAME: %s\n",Data);
+				printf("Address: %hhu.%hhu.%hhu.%hhu\n",Data[0],Data[1],Data[2],Data[3]);
 				break;
 			case(5):
-				printf("Address: %u,%u,%u,%u\n",Data[0],Data[1],Data[2],Data[3]);
+				char *tt = msg2dn(Data);
+				printf("CNAME: %s\n",tt);
+				free(tt);
 				break;
 		}
+		putchar('\n');
 	}
+
 	size_t len(){
 		return nameLen + DataLen + 10;
+	}
+	size_t _____len(){
+		return fnameLen + fdataLen + 10;
 	}
 	~DNSRR(){
 		free(Name);
 		free(Data);
 	}
-	DNSRR(const char *s,const char *frS){
-		uint8_t flag = s[0];
-		const char *p;
-		if(flag>>2==0xC){
-			const char *p = frS + ((uint)(s[0]&0xf)<<8) + uint(s[1]);
-			nameLen = strlen(p) + 1;
-			Name = (char*)malloc(nameLen);
-			memcpy(Name, p, nameLen);
-			p = s + 2;
-		} else {
-			nameLen = strlen(s) + 1;
-			Name = (char*)malloc(nameLen);
-			memcpy(Name, s, nameLen);
-			p = s + nameLen;
-		}
+	DNSRR(const char *s,const char *begin){
+		const char *p = s;
+		nameLen = dns::dn_len(p, begin);
+		Name = dns::full_dn(p,begin);
+		fnameLen=dns::dn_filed_len(p);
+		p += fnameLen;
 		const uint16_t *p16 = (const uint16_t *) p;
 		Type = ntohs(*p16++);
 		Class = htons(*p16++);
 		const uint32_t *p32 = (const uint32_t *) p16;
 		TTL = ntohl(*p32++);
-		p = (char*)p32;
-		DataLen = *p++;
-		Data = (char*)malloc(DataLen+1); 
-		memcpy(Data, p, DataLen);
-		Data[DataLen] = 0;
+		p16 = (const uint16_t*)p32;
+		fdataLen = ntohs(*p16++);
+		p = (const char *)p16;
+		if(Type == 5){
+			DataLen = dns::dn_len(p,begin);
+			Data = dns::full_dn(p,begin);
+		} else {
+			DataLen = fdataLen;
+			Data = (char*)malloc(DataLen+1); 
+			memcpy(Data, p, DataLen);
+			Data[DataLen] = 0;
+		}
+		
 	}
 	void toString(char *s){
 
@@ -211,7 +218,6 @@ struct DNSPackage{
 		header.QDCOUNT = 0x1;
 		questions = (DNSQuestion *)malloc(sizeof(DNSQuestion));
 		new(questions) DNSQuestion(0x1, 0x1, qdom);
-		printf("%s\n",questions[0].Name);
 		_len = header.len() + questions[0].len();
 	}
 	DNSPackage(const char *msg){
@@ -226,26 +232,25 @@ struct DNSPackage{
 			p += questions[i].len();
 			_len += questions[i].len();
 		}
-
 		answers = (DNSRR *)malloc(sizeof(DNSRR)*header.ANCOUNT);
 		for(int i=0;i<header.ANCOUNT;i++) {
 			new(answers+i) DNSRR(p, msg);
-			p += answers[i].len();
-			_len += answers[i].len();
+			p += answers[i]._____len();
+			_len += answers[i]._____len();
 		}
 
 		authoritys = (DNSRR *)malloc(sizeof(DNSRR)*header.NSCOUNT);
 		for(int i=0;i<header.NSCOUNT;i++) {
 			new(authoritys+i) DNSRR(p, msg);
-			p += authoritys[i].len();
-			_len += authoritys[i].len();
+			p += authoritys[i]._____len();
+			_len += authoritys[i]._____len();
 		}
 
 		additionals = (DNSRR *)malloc(sizeof(DNSRR)*header.ARCOUNT);
 		for(int i=0;i<header.ARCOUNT;i++) {
 			new(additionals+i) DNSRR(p, msg);
-			p += additionals[i].len();
-			_len += additionals[i].len();
+			p += additionals[i]._____len();
+			_len += additionals[i]._____len();
 		}
 	}
 	void toString(char *s){
